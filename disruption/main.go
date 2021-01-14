@@ -13,8 +13,6 @@ import (
 const (
 	MsGatewayUrl = "http://localhost:31380/typhoon-backend?index=1"
 
-	QuieGatewayUrl = "http://localhost:31380/typhoon-backend-quie?index=1"
-
 	MsUpdateUrl = "http://localhost:32088/apis/managedservice/typhoon-microservices-typhoon?namespace=typhoon"
 
 	QuieUpdateUrl = "http://localhost:32088/apis/quie/update"

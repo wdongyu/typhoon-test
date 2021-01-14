@@ -14,7 +14,7 @@ const (
 	GatewayUrl = "http://localhost:31380/typhoon-backend?index=1"
 
 	// UpdateUrl = "http://localhost:32088/apis/managedservice/typhoon-microservices-typhoon?namespace=typhoon"
-	UpdateUrl = "http://localhost:32088/apis/virtualservice/typhoon-microservices-typhoon?namespace=typhoon"
+	CanaryUpdateUrl = "http://localhost:32088/apis/virtualservice/typhoon-microservices-typhoon?namespace=typhoon"
 
 
 	VersionHeader = "X-Version"
@@ -39,7 +39,7 @@ func main()  {
 		log.Printf("#%d.\n", i)
 		go sendReq()
 		if i == 20 {
-			go updateReq()
+			go canarypdateReq()
 		}
 		time.Sleep(time.Duration(interval)* time.Millisecond)
 	}
@@ -76,12 +76,12 @@ func sendReq() {
 	log.Printf("Response : %s\n", typhoonHeader)
 }
 
-func updateReq() {
+func canarypdateReq() {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	time.Sleep(time.Duration(r.Intn(DefaultInterval))*time.Millisecond)
 
 	body := []byte(`{"routeSubset": "822d65df"}`)
-	req, err := http.NewRequest("PATCH", UpdateUrl, bytes.NewBuffer(body))
+	req, err := http.NewRequest("PATCH", CanaryUpdateUrl, bytes.NewBuffer(body))
 	if err != nil {
 		log.Printf("Fail to create update request : %v\n", err)
 		return

@@ -82,7 +82,7 @@ func quieUpdateReq() {
 
 	log.Println("Update request begin ...")
 	begin := time.Now()
-	body := []byte(`{"namespace": "typhoon", "rootService": "typhoon-backend", "rootPort": "8080",
+	body := []byte(`{"namespace": "typhoon", "rootService": "typhoon-backend",
 					"targetService": "typhoon-microservices-typhoon", 
 					"revokeSubset": "f7400817", "deploySubset": "822d65df"}`)
 	req, err := http.NewRequest("POST", QuieUpdateUrl, bytes.NewBuffer(body))
