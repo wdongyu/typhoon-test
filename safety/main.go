@@ -1,45 +1,41 @@
-package main
+package safety
 
 import (
-	"bytes"
-	"flag"
+	"fmt"
+	"github.com/wdongyu/typhoon-test/util"
 	"log"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
 )
 
 const (
-	GatewayUrl = "http://localhost:31380/typhoon-backend?index=1"
-
-	// UpdateUrl = "http://localhost:32088/apis/managedservice/typhoon-microservices-typhoon?namespace=typhoon"
-	CanaryUpdateUrl = "http://localhost:32088/apis/virtualservice/typhoon-microservices-typhoon?namespace=typhoon"
-
+	GatewayUrlPrefix = "http://localhost:31380/typhoon-backend?index="
 
 	VersionHeader = "X-Version"
 
-	DefaultInterval = 150
-
 	TyphoonHeaderPrefix = "typhoon-microservices-typhoon-"
+
+	TURNS = 40
 )
 
 func init() {
 	log.SetFlags(log.Lmicroseconds)
 }
 
-func main()  {
-	var interval int
-	flag.IntVar(&interval, "interval", DefaultInterval, `interval to send http request`)
-	flag.Parse()
-
+func Process(alg string, interval int)  {
 	var stop = make(chan bool)
-	turns := 40
-	for i := 1; i <= turns; i++ {
+	for i := 1; i <= TURNS; i++ {
 		log.Printf("#%d.\n", i)
-		go sendReq()
+		go sendReq(i, stop)
 		if i == 20 {
-			go canarypdateReq()
+			if alg == "Canary" {
+				go util.CanarypdateReq(interval)
+			} else if alg == "Quiescence" {
+				go util.QuieUpdateReq(interval)
+			} else if alg == "ManagedService" {
+				go util.MsUpdateReq(interval)
+			} else {}
 		}
 		time.Sleep(time.Duration(interval)* time.Millisecond)
 	}
@@ -47,8 +43,8 @@ func main()  {
 	<-stop
 }
 
-func sendReq() {
-	req, err := http.NewRequest("GET", GatewayUrl, nil)
+func sendReq(index int, stop chan bool) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s%d", GatewayUrlPrefix, index), nil)
 	if err != nil {
 		log.Printf("Fail to create http request : %v\n", err)
 		return
@@ -60,7 +56,7 @@ func sendReq() {
 		return
 	}
 
-	log.Println(res.Status)
+	log.Printf("%d. %s ", index, res.Status)
 	typhoonHeader := ""
 	for _, value := range res.Header[VersionHeader] {
 		if strings.HasPrefix(value, TyphoonHeaderPrefix) {
@@ -73,24 +69,9 @@ func sendReq() {
 			}
 		}
 	}
-	log.Printf("Response : %s\n", typhoonHeader)
+	log.Printf("%d. Response : %s\n", index, typhoonHeader)
+	if index == TURNS {
+		stop<-true
+	}
 }
 
-func canarypdateReq() {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	time.Sleep(time.Duration(r.Intn(DefaultInterval))*time.Millisecond)
-
-	body := []byte(`{"routeSubset": "822d65df"}`)
-	req, err := http.NewRequest("PATCH", CanaryUpdateUrl, bytes.NewBuffer(body))
-	if err != nil {
-		log.Printf("Fail to create update request : %v\n", err)
-		return
-	}
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		log.Printf("Fail to send update request : %v\n", err)
-		return
-	}
-	log.Println("Update request : " + res.Status)
-}

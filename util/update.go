@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"bytes"
@@ -16,11 +16,11 @@ const (
 	CanaryUpdateUrl = "http://localhost:32088/apis/virtualservice/typhoon-microservices-typhoon?namespace=typhoon"
 )
 
-func QuieUpdateReq() {
+func QuieUpdateReq(interval int) {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	time.Sleep(time.Duration(r.Intn(DefaultInterval))*time.Millisecond)
+	time.Sleep(time.Duration(r.Intn(interval))*time.Millisecond)
 
-	log.Println("Update request begin ...")
+	log.Println("Quiescence Update request begin ...")
 	begin := time.Now()
 	body := []byte(`{"namespace": "typhoon", "rootService": "typhoon-backend",
 					"targetService": "typhoon-microservices-typhoon", 
@@ -36,15 +36,15 @@ func QuieUpdateReq() {
 		log.Printf("Fail to send update request : %v\n", err)
 		return
 	}
-	log.Println("Update request : " + res.Status)
-	log.Println(time.Now().Sub(begin).Milliseconds())
+	log.Println("Quiescence Update response : " + res.Status)
+	log.Printf("Elapsed time : %d", time.Now().Sub(begin).Milliseconds())
 }
 
-func MsUpdateReq() {
+func MsUpdateReq(interval int) {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	time.Sleep(time.Duration(r.Intn(DefaultInterval))*time.Millisecond)
+	time.Sleep(time.Duration(r.Intn(interval))*time.Millisecond)
 
-	log.Println("Update request begin ...")
+	log.Println("ManagedService Update request begin ...")
 	begin := time.Now()
 	body := []byte(`{"routeSubset": "822d65df"}`)
 	req, err := http.NewRequest("PATCH", MsUpdateUrl, bytes.NewBuffer(body))
@@ -58,14 +58,16 @@ func MsUpdateReq() {
 		log.Printf("Fail to send update request : %v\n", err)
 		return
 	}
-	log.Println("Update request : " + res.Status)
-	log.Println(time.Now().Sub(begin).Milliseconds())
+	log.Println("ManagedService response : " + res.Status)
+	log.Printf("Elapsed time : %d", time.Now().Sub(begin).Milliseconds())
 }
 
-func CanarypdateReq() {
+func CanarypdateReq(interval int) {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	time.Sleep(time.Duration(r.Intn(DefaultInterval))*time.Millisecond)
+	time.Sleep(time.Duration(r.Intn(interval))*time.Millisecond)
 
+	log.Println("Canary Update request begin ...")
+	begin := time.Now()
 	body := []byte(`{"routeSubset": "822d65df"}`)
 	req, err := http.NewRequest("PATCH", CanaryUpdateUrl, bytes.NewBuffer(body))
 	if err != nil {
@@ -78,6 +80,7 @@ func CanarypdateReq() {
 		log.Printf("Fail to send update request : %v\n", err)
 		return
 	}
-	log.Println("Update request : " + res.Status)
+	log.Println("Canary Update response : " + res.Status)
+	log.Printf("Elapsed time : %d", time.Now().Sub(begin).Milliseconds())
 }
 

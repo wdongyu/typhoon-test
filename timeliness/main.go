@@ -1,54 +1,48 @@
-package main
+package timeliness
 
 import (
-	"bytes"
-	"flag"
+	"fmt"
+	"github.com/wdongyu/typhoon-test/util"
 	"log"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
 )
 
 const (
-	GatewayUrl = "http://localhost:31380/typhoon-backend?index=1"
-
-	MsUpdateUrl = "http://localhost:32088/apis/managedservice/typhoon-microservices-typhoon?namespace=typhoon"
-
-	QuieUpdateUrl = "http://localhost:32088/apis/quie/update"
+	GatewayUrlPrefix = "http://localhost:31380/typhoon-backend?index="
 
 	VersionHeader = "X-Version"
 
-	DefaultInterval = 1500
-
 	TyphoonHeaderPrefix = "typhoon-microservices-typhoon-"
+
+	TURNS = 40
 )
 
 func init() {
 	log.SetFlags(log.Lmicroseconds)
 }
 
-func main()  {
-	var interval int
-	flag.IntVar(&interval, "interval", DefaultInterval, `interval to send http request`)
-	flag.Parse()
-
+func Process(alg string, interval int)  {
 	var stop = make(chan bool)
-	turns := 10
-	for i := 1; i <= turns; i++ {
+	for i := 1; i <= TURNS; i++ {
 		log.Printf("#%d.\n", i)
-		go sendReq(i)
-		//if i == 20 {
-		//	go quieUpdateReq()
-		//}
+		go sendReq(i, stop)
+		if i == 20 {
+			if alg == "Quiescence" {
+				go util.QuieUpdateReq(interval)
+			} else if alg == "ManagedService" {
+				go util.MsUpdateReq(interval)
+			} else {}
+		}
 		time.Sleep(time.Duration(interval)* time.Millisecond)
 	}
 
 	<-stop
 }
 
-func sendReq(index int) {
-	req, err := http.NewRequest("GET", GatewayUrl, nil)
+func sendReq(index int, stop chan bool) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s%d", GatewayUrlPrefix, index), nil)
 	if err != nil {
 		log.Printf("%d. Fail to create http request : %v\n", index, err)
 		return
@@ -74,50 +68,7 @@ func sendReq(index int) {
 		}
 	}
 	log.Printf("%d. Response : %s\n", index, typhoonHeader)
-}
-
-func quieUpdateReq() {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	time.Sleep(time.Duration(r.Intn(DefaultInterval))*time.Millisecond)
-
-	log.Println("Update request begin ...")
-	begin := time.Now()
-	body := []byte(`{"namespace": "typhoon", "rootService": "typhoon-backend",
-					"targetService": "typhoon-microservices-typhoon", 
-					"revokeSubset": "f7400817", "deploySubset": "822d65df"}`)
-	req, err := http.NewRequest("POST", QuieUpdateUrl, bytes.NewBuffer(body))
-	if err != nil {
-		log.Printf("Fail to create update request : %v\n", err)
-		return
+	if index == TURNS {
+		stop<-true
 	}
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		log.Printf("Fail to send update request : %v\n", err)
-		return
-	}
-	log.Println("Update request : " + res.Status)
-	log.Println(time.Now().Sub(begin).Milliseconds())
-}
-
-func msUpdateReq() {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	time.Sleep(time.Duration(r.Intn(DefaultInterval))*time.Millisecond)
-
-	log.Println("Update request begin ...")
-	begin := time.Now()
-	body := []byte(`{"routeSubset": "822d65df"}`)
-	req, err := http.NewRequest("PATCH", MsUpdateUrl, bytes.NewBuffer(body))
-	if err != nil {
-		log.Printf("Fail to create update request : %v\n", err)
-		return
-	}
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		log.Printf("Fail to send update request : %v\n", err)
-		return
-	}
-	log.Println("Update request : " + res.Status)
-	log.Println(time.Now().Sub(begin).Milliseconds())
 }
