@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -9,7 +10,7 @@ import (
 )
 
 const (
-	GatewayUrl = "http://localhost:31380/typhoon-backend?index=1"
+	GatewayUrlPrefix = "http://localhost:31380/typhoon-backend?index="
 
 	VersionHeader = "X-Version"
 
@@ -54,7 +55,7 @@ func main() {
 }
 
 func sendReq(index int) {
-	req, err := http.NewRequest("GET", GatewayUrl, nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s%d", GatewayUrlPrefix, index), nil)
 	if err != nil {
 		log.Printf("%d. Fail to create http request : %v\n", index, err)
 		return
