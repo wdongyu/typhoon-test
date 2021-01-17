@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	DefaultInterval = 750
-	DefaultObject = "Safety"
-	DefaultAlg = "ManagedService"
+	DefaultInterval = 500
+	DefaultObject = "Disruption"
+	DefaultAlg = ""
 )
 
 func init() {

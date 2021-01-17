@@ -16,7 +16,7 @@ const (
 
 	TyphoonHeaderPrefix = "typhoon-microservices-typhoon-"
 
-	TURNS = 40
+	TURNS = 60
 )
 
 func init() {

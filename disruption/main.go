@@ -16,7 +16,7 @@ const (
 
 	TyphoonHeaderPrefix = "typhoon-microservices-typhoon-"
 
-	TURNS = 40
+	TURNS = 60
 )
 
 func init() {
@@ -42,7 +42,7 @@ func Process(alg string, interval int)  {
 	for t := range count {
 		timeSum += t
 	}
-	log.Println(timeSum)
+	log.Printf("Total time : %d", timeSum)
 
 	<-stop
 }
@@ -68,7 +68,7 @@ func sendReq(index int, stop chan bool, count chan int64) {
 			if index == TURNS {
 				close(count)
 			}
-			log.Printf("%d. %d\n", index, t)
+			log.Printf("%d. response time : %d\n", index, t)
 			log.Printf("%d. %v\n", index, res.Status)
 			typhoonHeader := ""
 			for _, value := range res.Header[VersionHeader] {

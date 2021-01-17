@@ -29,7 +29,7 @@ func Process(alg string, interval int)  {
 		log.Printf("#%d.\n", i)
 		go sendReq(i, stop)
 		if i == 20 {
-			if alg == "Canary" {
+			if alg == "Direct" {
 				go util.CanarypdateReq(interval)
 			} else if alg == "Quiescence" {
 				go util.QuieUpdateReq(interval)
