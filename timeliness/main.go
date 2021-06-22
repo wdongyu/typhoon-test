@@ -1,8 +1,10 @@
 package timeliness
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/wdongyu/typhoon-test/util"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -15,8 +17,14 @@ const (
 	VersionHeader = "X-Version"
 
 	TyphoonHeaderPrefix = "typhoon-microservices-typhoon-"
+	WindHeaderPrefix = "typhoon-microservices-windcontroller-"
 
 	TURNS = 60
+
+	TyphoonManagedServiceUrl = "http://localhost:32088/apis/managedservice?" +
+		"projectName=typhoon-pm&&app=typhoon-microservices-typhoon&&namespace=typhoon"
+	WindManagedServiceUrl = "http://localhost:32088/apis/managedservice?" +
+		"projectName=typhoon-pm&&app=typhoon-microservices-windcontroller&&namespace=typhoon"
 )
 
 func init() {
@@ -31,7 +39,7 @@ func Process(alg string, interval int)  {
 		if i == 20 {
 			if alg == "Quiescence" {
 				go util.QuieUpdateReq(interval)
-			} else if alg == "ManagedService" {
+			} else if alg == "CompEvo" {
 				go util.MsUpdateReq(interval)
 			} else {}
 		}
@@ -39,6 +47,34 @@ func Process(alg string, interval int)  {
 	}
 
 	<-stop
+
+	if alg == "Quiescence" {
+		log.Printf("Update elapsed time : %d\n", util.QuieUpdateElapse)
+	} else if alg == "CompEvo" {
+		req, err := http.NewRequest("GET", TyphoonManagedServiceUrl, nil)
+		if err != nil {
+			log.Printf("Fail to create get request : %v\n", err)
+			return
+		}
+		client := &http.Client{}
+		res, err := client.Do(req)
+		if err != nil {
+			log.Printf("Fail to send get request : %v\n", err)
+			return
+		}
+		resBody, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			log.Printf("Fail to read push status response body : %v\n", err)
+			return
+		}
+		var msList util.ManagedServiceList
+		if err = json.Unmarshal(resBody, &msList); err != nil {
+			log.Printf("Fail to unmarshal push status response body : %v\n", err)
+			return
+		}
+
+		log.Printf("Update elapsed time : %d\n", msList.ManagedServices[0].Status.ElapseTime)
+	}
 }
 
 func sendReq(index int, stop chan bool) {
@@ -56,6 +92,7 @@ func sendReq(index int, stop chan bool) {
 
 	log.Printf("%d. %s ", index, res.Status)
 	typhoonHeader := ""
+	windHeader := ""
 	for _, value := range res.Header[VersionHeader] {
 		if strings.HasPrefix(value, TyphoonHeaderPrefix) {
 			if typhoonHeader == "" {
@@ -66,8 +103,17 @@ func sendReq(index int, stop chan bool) {
 				}
 			}
 		}
+		if strings.HasPrefix(value, WindHeaderPrefix) {
+			if windHeader == "" {
+				windHeader = value
+			} else {
+				if windHeader != value {
+					log.Printf("Version header %s : %s conflict ...\n", windHeader, value)
+				}
+			}
+		}
 	}
-	log.Printf("%d. Response : %s\n", index, typhoonHeader)
+	log.Printf("%d. Response : %s, %s\n", index, windHeader,  typhoonHeader)
 	if index == TURNS {
 		stop<-true
 	}

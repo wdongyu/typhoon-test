@@ -2,4 +2,4 @@ module github.com/wdongyu/typhoon-test
 
 go 1.13
 
-require gonum.org/v1/gonum v0.8.2
+require k8s.io/apimachinery v0.20.2

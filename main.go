@@ -10,8 +10,8 @@ import (
 
 const (
 	DefaultInterval = 500
-	DefaultObject = "Disruption"
-	DefaultAlg = ""
+	DefaultExp = "Safety"
+	DefaultAlg = "CompEvo"
 )
 
 func init() {
@@ -22,7 +22,7 @@ func main() {
 	var expType, alg string
 	var interval int
 	flag.IntVar(&interval, "interval", DefaultInterval, `interval to send http request`)
-	flag.StringVar(&expType, "object", DefaultObject, `object of the test`)
+	flag.StringVar(&expType, "object", DefaultExp, `object of the test`)
 	flag.StringVar(&alg, "alg", DefaultAlg, `algorithm will be used`)
 	flag.Parse()
 

@@ -5,15 +5,25 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 )
 
 const (
-	MsUpdateUrl = "http://localhost:32088/apis/managedservice/typhoon-microservices-typhoon?namespace=typhoon"
+	TyphoonMsUpdateUrl = "http://localhost:32088/apis/managedservice/typhoon-microservices-typhoon?namespace=typhoon"
+	WindMsUpdateUrl = "http://localhost:32088/apis/managedservice/typhoon-microservices-windcontroller?namespace=typhoon"
 
 	QuieUpdateUrl = "http://localhost:32088/apis/quie/update"
 
 	CanaryUpdateUrl = "http://localhost:32088/apis/virtualservice/typhoon-microservices-typhoon?namespace=typhoon"
+	//CanaryUpdateUrl = "http://localhost:32088/apis/virtualservice/typhoon-microservices-windcontroller?namespace=typhoon"
+)
+
+var (
+	QuieUpdateBegin string
+	QuieUpdateEnd string
+	QuieUpdateElapse int64
 )
 
 func QuieUpdateReq(interval int) {
@@ -24,7 +34,7 @@ func QuieUpdateReq(interval int) {
 	begin := time.Now()
 	body := []byte(`{"namespace": "typhoon", "rootService": "typhoon-backend",
 					"targetService": "typhoon-microservices-typhoon", 
-					"revokeSubset": "f7400817", "deploySubset": "822d65df"}`)
+					"revokeSubset": "1bf67d52", "deploySubset": "550c1013"}`)
 	req, err := http.NewRequest("POST", QuieUpdateUrl, bytes.NewBuffer(body))
 	if err != nil {
 		log.Printf("Fail to create update request : %v\n", err)
@@ -36,8 +46,14 @@ func QuieUpdateReq(interval int) {
 		log.Printf("Fail to send update request : %v\n", err)
 		return
 	}
+
 	log.Println("Quiescence Update response : " + res.Status)
-	log.Printf("Elapsed time : %d", time.Now().Sub(begin).Milliseconds())
+	end := time.Now()
+	log.Printf("Elapsed time : %d", end.Sub(begin).Milliseconds())
+
+	QuieUpdateBegin = strconv.FormatInt(begin.UnixNano(), 10)
+	QuieUpdateEnd = strconv.FormatInt(end.UnixNano(), 10)
+	QuieUpdateElapse = end.Sub(begin).Milliseconds()
 }
 
 func MsUpdateReq(interval int) {
@@ -45,21 +61,32 @@ func MsUpdateReq(interval int) {
 	time.Sleep(time.Duration(r.Intn(interval))*time.Millisecond)
 
 	log.Println("ManagedService Update request begin ...")
-	begin := time.Now()
-	body := []byte(`{"routeSubset": "822d65df"}`)
-	req, err := http.NewRequest("PATCH", MsUpdateUrl, bytes.NewBuffer(body))
+	// begin := time.Now()
+	body := []byte(`{"routeSubset": "550c1013"}`)
+	req1, err := http.NewRequest("PATCH", TyphoonMsUpdateUrl, bytes.NewBuffer(body))
 	if err != nil {
 		log.Printf("Fail to create update request : %v\n", err)
 		return
 	}
+	//req2, err := http.NewRequest("PATCH", WindMsUpdateUrl, bytes.NewBuffer(body))
+	//if err != nil {
+	//	log.Printf("Fail to create update request : %v\n", err)
+	//	return
+	//}
 	client := &http.Client{}
-	res, err := client.Do(req)
+	res1, err := client.Do(req1)
 	if err != nil {
 		log.Printf("Fail to send update request : %v\n", err)
 		return
 	}
-	log.Println("ManagedService response : " + res.Status)
-	log.Printf("Elapsed time : %d", time.Now().Sub(begin).Milliseconds())
+	//res2, err := client.Do(req2)
+	//if err != nil {
+	//	log.Printf("Fail to send update request : %v\n", err)
+	//	return
+	//}
+	log.Println("Typhoon ManagedService response : " + res1.Status)
+	//log.Println("WindController ManagedService response : " + res2.Status)
+	// log.Printf("Elapsed time : %d", time.Now().Sub(begin).Milliseconds())
 }
 
 func CanarypdateReq(interval int) {
@@ -68,7 +95,7 @@ func CanarypdateReq(interval int) {
 
 	log.Println("Canary Update request begin ...")
 	begin := time.Now()
-	body := []byte(`{"routeSubset": "822d65df"}`)
+	body := []byte(`{"routeSubset": "550c1013"}`)
 	req, err := http.NewRequest("PATCH", CanaryUpdateUrl, bytes.NewBuffer(body))
 	if err != nil {
 		log.Printf("Fail to create update request : %v\n", err)
@@ -82,5 +109,14 @@ func CanarypdateReq(interval int) {
 	}
 	log.Println("Canary Update response : " + res.Status)
 	log.Printf("Elapsed time : %d", time.Now().Sub(begin).Milliseconds())
+}
+
+func Between(begin string, end string, ts string) bool {
+	tokens := strings.Split(ts, "-")
+	if  (begin < tokens[0] && tokens[0] < end) ||
+			(begin < tokens[1] && tokens[1] < end) {
+		return true
+	}
+	return false
 }
 
